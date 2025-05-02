@@ -16,8 +16,8 @@ typedef struct HashItem
 typedef struct HashTable
 {
 	HashItem **items;
-	int size;
-	int count;
+	size_t size;
+	size_t count;
 } HashTable;
 
 typedef struct SortableItem
@@ -30,44 +30,38 @@ typedef struct ThreadArgs
 {
 	int tid;
 	char *fileName;
-	int start;
-	int end;
+	size_t start;
+	size_t end;
 	HashTable *table;
 } ThreadArgs;
 
 int ceilDivision(int numerator, int divisor);
-
 int getLineCount(const char *fileName);
-
 unsigned int hashGenerator(char *key, int size);
-
 HashTable *createHashTable(int size);
-
 HashItem *createHashItem(char *key, int value);
-
 HashItem *searchHashTable(HashTable *table, char *key);
-
-unsigned int hashGenerator(char *key, int size);
-
 void incrementOrInsertHashItem(HashTable *table, char *key, int value);
-
 void freeHashItem(HashItem *item);
-
 void freeHashTable(HashTable *table);
-
 char **readFileContent(const char *fileName, int startLine, int endLine);
-
 int compareHashItems(const void *a, const void *b);
-
 void printSortedHashTable(HashTable *table);
-
 void *countPlayerOccurrences(void *arg);
 
-int main()
+int main(int argc, char *argv[])
 {
-	const char *fileName = "mvp_champions_23_24.txt";
-	int lineCount = getLineCount(fileName);
-	int N = 5; // 3
+	if (argc != 3)
+	{
+		fprintf(stderr, "Uso: %s archivo.txt num_hebras\n", argv[0]);
+		return EXIT_FAILURE;
+	}
+
+	char *fileName = argv[1];
+	size_t N = atoi(argv[2]);
+	// const char *fileName = "mvp_champions_23_24.txt";
+	// int N = 5; // 3
+	size_t lineCount = getLineCount(fileName);
 	int chunkSize = ceilDivision(lineCount, N);
 	HashTable *table = createHashTable(lineCount);
 
@@ -80,7 +74,7 @@ int main()
 	int start = 0;
 	for (size_t i = 0; i < N; i++)
 	{
-		int end = start + chunkSize;
+		size_t end = start + chunkSize;
 		if (end > lineCount)
 		{
 			end = lineCount;
@@ -112,7 +106,7 @@ int main()
 
 	pthread_mutex_destroy(&tableMutex);
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
 int ceilDivision(int numerator, int divisor)
@@ -249,7 +243,7 @@ void printSortedHashTable(HashTable *table)
 	fprintf(fptr, "Jugador MVP%*s|\tPremios\n", 13, "");
 	fprintf(fptr, "-----------------------------------\n");
 
-	for (int i = 0; i < table->count; i++)
+	for (size_t i = 0; i < table->count; i++)
 	{
 		char buffer[100] = {0};
 		strcpy(buffer, sortedItems[i].key);
@@ -257,7 +251,7 @@ void printSortedHashTable(HashTable *table)
 		// count visible chars not bytes
 		int visibleCharacters = countVisibleCharacters(buffer);
 
-		for (int j = visibleCharacters; j < 24; j++)
+		for (size_t j = visibleCharacters; j < 24; j++)
 		{
 			strcat(buffer, " ");
 		}
@@ -278,7 +272,7 @@ void freeHashItem(HashItem *item)
 
 void freeHashTable(HashTable *table)
 {
-	for (int i = 0; i < table->size; i++)
+	for (size_t i = 0; i < table->size; i++)
 	{
 		HashItem *item = table->items[i];
 
@@ -304,7 +298,7 @@ char **readFileContent(const char *fileName, int startLine, int endLine)
 	}
 
 	char buffer[1024];
-	int lineCount = endLine - startLine;
+	size_t lineCount = endLine - startLine;
 
 	char **lines = malloc(lineCount * sizeof(char *));
 	int currentLine = 0;
@@ -313,7 +307,7 @@ char **readFileContent(const char *fileName, int startLine, int endLine)
 		currentLine++;
 	}
 
-	int i = 0;
+	size_t i = 0;
 	while (i < lineCount && fgets(buffer, sizeof(buffer), file))
 	{
 		// Picks only the player name without the comma before his name
@@ -322,7 +316,7 @@ char **readFileContent(const char *fileName, int startLine, int endLine)
 	}
 
 	// Removes \r and \n
-	for (int j = 0; j < lineCount; j++)
+	for (size_t j = 0; j < lineCount; j++)
 	{
 		if (lines[j])
 		{
@@ -330,7 +324,6 @@ char **readFileContent(const char *fileName, int startLine, int endLine)
 		}
 	}
 
-	printf("Total lines: %d\n", lineCount);
 	fclose(file);
 
 	return lines;
@@ -342,7 +335,7 @@ int getLineCount(const char *fileName)
 	if (file == NULL)
 	{
 		perror("Error opening file");
-		return NULL;
+		return -1;
 	}
 
 	char buffer[1024];
@@ -364,7 +357,7 @@ void *countPlayerOccurrences(void *arg)
 	ThreadArgs *p = (ThreadArgs *)arg;
 
 	char **fileContent = readFileContent(p->fileName, p->start, p->end);
-	for (int j = 0; j < p->end - p->start; j++)
+	for (size_t j = 0; j < p->end - p->start; j++)
 	{
 		incrementOrInsertHashItem(p->table, fileContent[j], 1);
 
