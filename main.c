@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-pthread_mutex_t hashMutex;
+pthread_mutex_t tableMutex;
 
 typedef struct HashItem
 {
@@ -26,22 +26,20 @@ typedef struct SortableItem
 	int value;
 } SortableItem;
 
-typedef struct strLimit
+typedef struct ThreadArgs
 {
 	int tid;
 	char *fileName;
 	int start;
 	int end;
 	HashTable *table;
-} strLimit;
+} ThreadArgs;
 
 int ceilDivision(int numerator, int divisor);
 
 int getLineCount(const char *fileName);
 
 unsigned int hashGenerator(char *key, int size);
-
-void printHashTable(HashTable *table);
 
 HashTable *createHashTable(int size);
 
@@ -51,17 +49,11 @@ HashItem *searchHashTable(HashTable *table, char *key);
 
 unsigned int hashGenerator(char *key, int size);
 
-void insertHashItem(HashTable *table, char *key, int value);
-
-void modifyHashItemValue(HashTable *table, char *key, int value);
-
-void printHashTable(HashTable *table);
+void incrementOrInsertHashItem(HashTable *table, char *key, int value);
 
 void freeHashItem(HashItem *item);
 
 void freeHashTable(HashTable *table);
-
-void freeFileContent(char **fileContent, int lineCount);
 
 char **readFileContent(const char *fileName, int startLine, int endLine);
 
@@ -69,22 +61,7 @@ int compareHashItems(const void *a, const void *b);
 
 void printSortedHashTable(HashTable *table);
 
-void *myFunc(void *arg)
-{
-	strLimit *p = (strLimit *)arg;
-
-	char **fileContent = readFileContent(p->fileName, p->start, p->end);
-	for (int j = 0; j < p->end - p->start; j++)
-	{
-		insertHashItem(p->table, fileContent[j], 1);
-
-		free(fileContent[j]);
-	}
-
-	free(fileContent);
-
-	pthread_exit(NULL);
-}
+void *countPlayerOccurrences(void *arg);
 
 int main()
 {
@@ -94,11 +71,11 @@ int main()
 	int chunkSize = ceilDivision(lineCount, N);
 	HashTable *table = createHashTable(lineCount);
 
-	pthread_mutex_init(&hashMutex, NULL);
+	pthread_mutex_init(&tableMutex, NULL);
 
 	pthread_t *threads = malloc(N * sizeof(pthread_t));
 
-	strLimit *arrThreads = malloc(N * sizeof(strLimit));
+	ThreadArgs *arrThreads = malloc(N * sizeof(ThreadArgs));
 
 	int start = 0;
 	for (size_t i = 0; i < N; i++)
@@ -119,7 +96,7 @@ int main()
 
 	for (size_t i = 0; i < N; i++)
 	{
-		pthread_create(&(threads[i]), NULL, myFunc, (void *)&(arrThreads[i]));
+		pthread_create(&(threads[i]), NULL, countPlayerOccurrences, (void *)&(arrThreads[i]));
 	}
 
 	for (size_t i = 0; i < N; i++)
@@ -133,7 +110,7 @@ int main()
 	free(arrThreads);
 	freeHashTable(table);
 
-	pthread_mutex_destroy(&hashMutex);
+	pthread_mutex_destroy(&tableMutex);
 
 	return 0;
 }
@@ -199,9 +176,9 @@ unsigned int hashGenerator(char *key, int size)
 	return hashValue;
 }
 
-void insertHashItem(HashTable *table, char *key, int value)
+void incrementOrInsertHashItem(HashTable *table, char *key, int value)
 {
-	pthread_mutex_lock(&hashMutex);
+	pthread_mutex_lock(&tableMutex);
 
 	unsigned int index = hashGenerator(key, table->size);
 	HashItem *current = table->items[index];
@@ -213,7 +190,7 @@ void insertHashItem(HashTable *table, char *key, int value)
 		if (strcmp(current->key, key) == 0)
 		{
 			current->value += 1;
-			pthread_mutex_unlock(&hashMutex);
+			pthread_mutex_unlock(&tableMutex);
 			return;
 		}
 		current = current->next;
@@ -226,34 +203,7 @@ void insertHashItem(HashTable *table, char *key, int value)
 	table->items[index] = newItem;
 	table->count++;
 
-	pthread_mutex_unlock(&hashMutex);
-}
-
-void modifyHashItemValue(HashTable *table, char *key, int value)
-{
-	unsigned int index = hashGenerator(key, table->size);
-	HashItem *current = table->items[index];
-	while (current != NULL)
-	{
-		if (strcmp(current->key, key) == 0)
-		{
-			current->value += value;
-		}
-		current = current->next;
-	}
-}
-
-void printHashTable(HashTable *table)
-{
-	for (size_t i = 0; i < table->size; i++)
-	{
-		HashItem *current = table->items[i];
-		while (current != NULL)
-		{
-			printf("key: %s, value: %d\n", current->key, current->value);
-			current = current->next;
-		}
-	}
+	pthread_mutex_unlock(&tableMutex);
 }
 
 // TODO explain
@@ -344,15 +294,6 @@ void freeHashTable(HashTable *table)
 	free(table);
 }
 
-void freeFileContent(char **fileContent, int lineCount)
-{
-	for (int i = 0; i < lineCount; i++)
-	{
-		free(fileContent[i]);
-	}
-	free(fileContent);
-}
-
 char **readFileContent(const char *fileName, int startLine, int endLine)
 {
 	FILE *file = fopen(fileName, "r");
@@ -416,6 +357,23 @@ int getLineCount(const char *fileName)
 	fclose(file);
 
 	return lineCount;
+}
+
+void *countPlayerOccurrences(void *arg)
+{
+	ThreadArgs *p = (ThreadArgs *)arg;
+
+	char **fileContent = readFileContent(p->fileName, p->start, p->end);
+	for (int j = 0; j < p->end - p->start; j++)
+	{
+		incrementOrInsertHashItem(p->table, fileContent[j], 1);
+
+		free(fileContent[j]);
+	}
+
+	free(fileContent);
+
+	pthread_exit(NULL);
 }
 
 // qsort needs the void pointer type
