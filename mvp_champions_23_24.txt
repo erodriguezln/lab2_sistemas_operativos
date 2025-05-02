@@ -1,0 +1,125 @@
+Grupo MD1,AC Milan,Newcastle,0-0,Rafael Leão
+Grupo MD1,Young Boys,Leipzig,1-3,Xavi Simons
+Grupo MD1,Feyenoord,Celtic,2-0,Calvin Stengs
+Grupo MD1,Lazio,Atlético de Madrid,1-1,Antoine Griezmann
+Grupo MD1,Paris,Dortmund,2-0,Vitinha
+Grupo MD1,Man City,Crvena zvezda,3-1,Rodri
+Grupo MD1,Barcelona,Antwerp,5-0,João Félix
+Grupo MD1,Shakhtar Donetsk,Porto,1-3,Galeno
+Grupo MD1,Galatasaray,Copenhagen,2-2,Tetê
+Grupo MD1,Real Madrid,Union Berlin,1-0,Jude Bellingham
+Grupo MD1,Bayern,Man United,4-3,Leroy Sané
+Grupo MD1,Sevilla,Lens,1-1,Lucas Ocampos
+Grupo MD1,Arsenal,PSV Eindhoven,4-0,Martin Ødegaard
+Grupo MD1,Braga,Napoli,1-2,Victor Osimhen
+Grupo MD1,Benfica,Salzburg,0-2,Roko Šimić
+Grupo MD1,Real Sociedad,Inter,1-1,Brais Méndez
+Grupo MD2,Union Berlin,Braga,2-3,Bruma
+Grupo MD2,Salzburg,Real Sociedad,0-2,Brais Méndez
+Grupo MD2,Man United,Galatasaray,2-3,Rasmus Højlund
+Grupo MD2,Copenhagen,Bayern,1-2,Joshua Kimmich
+Grupo MD2,Lens,Arsenal,2-1,Elye Wahi
+Grupo MD2,PSV Eindhoven,Sevilla,2-2,Noa Lang
+Grupo MD2,Napoli,Real Madrid,2-3,Jude Bellingham
+Grupo MD2,Inter,Benfica,1-0,Lautaro Martínez
+Grupo MD2,Atlético de Madrid,Feyenoord,3-2,Álvaro Morata
+Grupo MD2,Antwerp,Shakhtar Donetsk,2-3,Danylo Sikan
+Grupo MD2,Celtic,Lazio,1-2,Matías Vecino
+Grupo MD2,Dortmund,Milan,0-0,Rafael Leão
+Grupo MD2,Newcastle,Paris,4-1,Miguel Almirón
+Grupo MD2,Leipzig,Man City,1-3,Phil Foden
+Grupo MD2,Crvena zvezda,Young Boys,2-2,Osman Bukari
+Grupo MD2,Porto,Barcelona,0-1,İlkay Gündoğan
+Grupo MD3,Galatasaray,Bayern,1-3,Kingsley Coman
+Grupo MD3,Inter,Salzburg,2-1,Hakan Çalhanoğlu
+Grupo MD3,Man United,Copenhagen,1-0,Christian Eriksen
+Grupo MD3,Sevilla,Arsenal,1-2,Gabriel Jesus
+Grupo MD3,Lens,PSV Eindhoven,1-1,Kevin Danso
+Grupo MD3,Braga,Real Madrid,1-2,Vinícius Júnior
+Grupo MD3,Union Berlin,Napoli,0-1,Khvicha Kvaratskhelia
+Grupo MD3,Benfica,Real Sociedad,0-1,Takefusa Kubo
+Grupo MD3,Feyenoord,Lazio,3-1,Santiago Gimenez
+Grupo MD3,Barcelona,Shakhtar Donetsk,2-1,Fermín López
+Grupo MD3,Celtic,Atlético de Madrid,2-2,Matthew O'Riley
+Grupo MD3,Paris,Milan,3-0,Warren Zaïre-Emery
+Grupo MD3,Newcastle,Dortmund,0-1,Donyell Malen
+Grupo MD3,Leipzig,Crvena zvezda,3-1,David Raum
+Grupo MD3,Young Boys,Man City,1-3,Rico Lewis
+Grupo MD3,Antwerp,Porto,1-4,Evanilson
+Grupo MD4,Dortmund,Newcastle,2-0,Julian Brandt
+Grupo MD4,Shakhtar Donetsk,Barcelona,1-0,Georgiy Sudakov
+Grupo MD4,Atlético de Madrid,Celtic,6-0,Antoine Griezmann
+Grupo MD4,Lazio,Feyenoord,1-0,Ciro Immobile
+Grupo MD4,Milan,Paris,2-1,Rafael Leão
+Grupo MD4,Man City,Young Boys,3-0,Erling Haaland
+Grupo MD4,Crvena zvezda,Leipzig,1-2,Loïs Openda
+Grupo MD4,Porto,Antwerp,2-0,João Mário
+Grupo MD4,Napoli,Union Berlin,1-1,Matteo Politano
+Grupo MD4,Real Sociedad,Benfica,3-1,Mikel Oyarzabal
+Grupo MD4,Bayern,Galatasaray,2-1,Harry Kane
+Grupo MD4,Copenhagen,Man United,4-3,Rasmus Falk
+Grupo MD4,Arsenal,Sevilla,2-0,Bukayo Saka
+Grupo MD4,PSV Eindhoven,Lens,1-0,Luuk de Jong
+Grupo MD4,Real Madrid,Braga,3-0,Rodrygo
+Grupo MD4,Salzburg,Inter,0-1,Lautaro Martínez
+Grupo MD5,Lazio,Celtic,2-0,Ciro Immobile
+Grupo MD5,Shakhtar Donetsk,Antwerp,1-0,Oleksandr Zubkov
+Grupo MD5,Feyenoord,Atlético de Madrid,1-3,Rodrigo Riquelme
+Grupo MD5,Paris,Newcastle,1-1,Kieran Trippier
+Grupo MD5,Milan,Dortmund,1-3,Mats Hummels
+Grupo MD5,Man City,Leipzig,3-2,Phil Foden
+Grupo MD5,Young Boys,Crvena zvezda,2-0,Lewin Blum
+Grupo MD5,Barcelona,Porto,2-1,João Cancelo
+Grupo MD5,Galatasaray,Man United,3-3,Hakim Ziyech
+Grupo MD5,Sevilla,PSV Eindhoven,2-3,Johan Bakayoko
+Grupo MD5,Bayern,Copenhagen,0-0,Rasmus Falk
+Grupo MD5,Arsenal,Lens,6-0,Gabriel Jesus
+Grupo MD5,Real Madrid,Napoli,4-2,Jude Bellingham
+Grupo MD5,Braga,Union Berlin,1-1,Ricardo Horta
+Grupo MD5,Benfica,Inter,3-3,João Mário
+Grupo MD5,Real Sociedad,Salzburg,0-0,Martin Zubimendi
+Grupo MD6,Lens,Sevilla,2-1,Przemysław Frankowski
+Grupo MD6,PSV Eindhoven,Arsenal,1-1,Ismael Saibari
+Grupo MD6,Man United,Bayern,0-1,Kingsley Coman
+Grupo MD6,Copenhagen,Galatasaray,1-0,Rasmus Falk
+Grupo MD6,Napoli,Braga,2-0,Natan
+Grupo MD6,Union Berlin,Real Madrid,2-3,Joselu
+Grupo MD6,Inter,Real Sociedad,0-0,Martin Zubimendi
+Grupo MD6,Salzburg,Benfica,1-3,Ángel Di María
+Grupo MD6,Leipzig,Young Boys,2-1,Kevin Kampl
+Grupo MD6,Crvena zvezda,Man City,2-3,Oscar Bobb
+Grupo MD6,Atlético de Madrid,Lazio,2-0,Samuel Lino
+Grupo MD6,Celtic,Feyenoord,2-1,Liam Scales
+Grupo MD6,Dortmund,Paris,1-1,Warren Zaïre-Emery
+Grupo MD6,Newcastle,Milan,1-2,Tijjani Reijnders
+Grupo MD6,Porto,Shakhtar Donetsk,5-3,Galeno
+Grupo MD6,Antwerp,Barcelona,3-2,Arthur Vermeeren
+Octavos,Copenhagen,Man City,1-3,Kevin De Bruyne
+Octavos,Leipzig,Real Madrid,0-1,Brahim Díaz
+Octavos,Paris,Real Sociedad,2-0,Kylian 
+Octavos,Lazio,Bayern,1-0,Matteo Guendouzi
+Octavos,Inter,Atlético de Madrid,1-0,Marko Arnautović
+Octavos,PSV,Dortmund,1-1,Joey Veerman
+Octavos,Porto,Arsenal,1-0,Galeno
+Octavos,Napoli,Barcelona,1-1,Robert Lewandowski
+Octavos,Real Sociedad,Paris,1-2,Kylian 
+Octavos,Bayern,Lazio,3-0,Harry Kane
+Octavos,Man City,Copenhagen,3-1,Manuel Akanji
+Octavos,Real Madrid,Leipzig,1-1,Willi Orbán
+Octavos,Arsenal,Porto,1-0,David Raya
+Octavos,Barcelona,Napoli,3-1,Pau Cubarsí
+Octavos,Atlético de Madrid,Inter,2-1,Jan Oblak
+Octavos,Dortmund,PSV,2-0,Jadon Sancho
+Cuartos,Arsenal,Bayern,2-2,Martin Ødegaard
+Cuartos,Real Madrid,Man City,3-3,Phil Foden
+Cuartos,Atlético de Madrid,Dortmund,2-1,Antoine Griezmann
+Cuartos,Paris,Barcelona,2-3,Raphinha
+Cuartos,Dortmund,Atlético de Madrid,4-2,Julian Brandt
+Cuartos,Barcelona,Paris,1-4,Ousmane Dembélé
+Cuartos,Bayern,Arsenal,1-0,Joshua Kimmich
+Cuartos,Man City,Real Madrid,1-1,Federico Valverde
+Semifinal,Bayern,Real Madrid,2-2,Vinícius Júnior
+Semifinal,Dortmund,Paris,1-0,Mats Hummels
+Semifinal,Paris,Dortmund,0-1,Mats Hummels
+Semifinal,Real Madrid,Bayern,2-1,Vinícius Júnior
+Final,Dortmund,Real Madrid,0-2,Dani Carvajal
