@@ -1,3 +1,11 @@
+/**
+ * This program reads a file containing player names and their MVP awards,
+ * counts the occurrences of each player, and sorts them in descending order.
+ * It uses multiple threads to speed up the counting process.
+ *
+ * Usage: ./program_name file.txt num_threads
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,22 +43,23 @@ typedef struct ThreadArgs
 	HashTable *table;
 } ThreadArgs;
 
+// Function prototypes
+int countVisibleCharacters(const char *str);
 int ceilDivision(int numerator, int divisor);
 int getLineCount(const char *fileName);
 unsigned int hashGenerator(char *key, int size);
 HashTable *createHashTable(int size);
 HashItem *createHashItem(char *key, int value);
-HashItem *searchHashTable(HashTable *table, char *key);
 void incrementOrInsertHashItem(HashTable *table, char *key, int value);
-void freeHashItem(HashItem *item);
 void freeHashTable(HashTable *table);
-char **readFileContent(const char *fileName, int startLine, int endLine);
+char **extractMVPNamesFromFileRange(const char *fileName, int startLine, int endLine);
 int compareHashItems(const void *a, const void *b);
 void printSortedHashTable(HashTable *table);
 void *countPlayerOccurrences(void *arg);
 
 int main(int argc, char *argv[])
 {
+	// Check if the user provided the correct number of arguments
 	if (argc != 3)
 	{
 		fprintf(stderr, "Uso: %s archivo.txt num_hebras\n", argv[0]);
@@ -63,13 +72,35 @@ int main(int argc, char *argv[])
 	// int N = 5; // 3
 	size_t lineCount = getLineCount(fileName);
 	int chunkSize = ceilDivision(lineCount, N);
-	HashTable *table = createHashTable(lineCount);
 
+	HashTable *table = createHashTable(lineCount);
+	if (table == NULL)
+	{
+		fprintf(stderr, "Error creating hash table\n");
+		return EXIT_FAILURE;
+	}
+
+	// Initialize the mutex that will be used to protect the shared hash table
 	pthread_mutex_init(&tableMutex, NULL);
 
+	// Allocate memory for the threads by the number provided by the user
 	pthread_t *threads = malloc(N * sizeof(pthread_t));
+	if (threads == NULL)
+	{
+		fprintf(stderr, "Error allocating memory for threads\n");
+		freeHashTable(table);
+		return EXIT_FAILURE;
+	}
 
+	// Allocate memory for the thread arguments
 	ThreadArgs *arrThreads = malloc(N * sizeof(ThreadArgs));
+	if (arrThreads == NULL)
+	{
+		fprintf(stderr, "Error allocating memory for thread arguments\n");
+		free(threads);
+		freeHashTable(table);
+		return EXIT_FAILURE;
+	}
 
 	int start = 0;
 	for (size_t i = 0; i < N; i++)
@@ -88,11 +119,14 @@ int main(int argc, char *argv[])
 		start = end;
 	}
 
+	// Create threads to count player occurrences in the file
+	// Each thread will process a portion of the file
 	for (size_t i = 0; i < N; i++)
 	{
 		pthread_create(&(threads[i]), NULL, countPlayerOccurrences, (void *)&(arrThreads[i]));
 	}
 
+	// Wait for all threads to finish
 	for (size_t i = 0; i < N; i++)
 	{
 		pthread_join(threads[i], NULL);
@@ -104,11 +138,19 @@ int main(int argc, char *argv[])
 	free(arrThreads);
 	freeHashTable(table);
 
+	// Destroy the mutex after all threads have finished
 	pthread_mutex_destroy(&tableMutex);
 
 	return EXIT_SUCCESS;
 }
 
+/**
+ * Calculates the ceiling division of two integers (division rounded up).
+ *
+ * @param numerator The number to be divided
+ * @param divisor The number to divide by
+ * @return The result of ceiling division (rounded up to the nearest integer)
+ */
 int ceilDivision(int numerator, int divisor)
 {
 	if (numerator % divisor == 0)
@@ -121,42 +163,72 @@ int ceilDivision(int numerator, int divisor)
 	}
 }
 
+/**
+ * Creates and initializes a has table
+ *
+ * @param size The capacity of the hash table
+ * @return Pointer to the newly created hash table or NULL if memory alloc fails
+ */
 HashTable *createHashTable(int size)
 {
+	// Allocate memory for the hash table
 	HashTable *table = malloc(sizeof(HashTable));
+	if (table == NULL)
+	{
+		perror("Failed to allocate memory for hash table");
+		return NULL;
+	}
 
+	// Allocate and initializes the array of items pointers to NULL (calloc)
 	table->items = calloc(size, sizeof(HashItem *));
+	if (table->items == NULL)
+	{
+		perror("Failed to allocate memory for hash table items");
+		free(table);
+		return NULL;
+	}
+
+	// Initializes table properties
 	table->count = 0;
 	table->size = size;
 
 	return table;
 }
 
+/**
+ * Creates and initializes a hash item
+ *
+ * @param key The key of the hash item
+ * @param value The value of the hash item
+ * @return Pointer to the newly created hash item or NULL if memory alloc fails
+ */
 HashItem *createHashItem(char *key, int value)
 {
+	// Allocate memory for the hash item
 	HashItem *item = malloc(sizeof(HashItem));
+	if (item == NULL)
+	{
+		perror("Failed to allocate memory for hash item");
+		return NULL;
+	}
+
+	// Allocate memory for the key string
+	// The +1 is for the null terminator
 	item->key = malloc((strlen(key) + 1) * sizeof(char));
+	if (item->key == NULL)
+	{
+		perror("Failed to allocate memory for hash item key");
+		free(item);
+		return NULL;
+	}
+
+	// Copy the key string into the allocated memory
 	strcpy(item->key, key);
+	// Initialize the value and next pointer
 	item->value = value;
 	item->next = NULL;
 
 	return item;
-}
-
-HashItem *searchHashTable(HashTable *table, char *key)
-{
-	unsigned int index = hashGenerator(key, table->size);
-	HashItem *current = table->items[index];
-	while (current != NULL)
-	{
-		if (strcmp(current->key, key) == 0)
-		{
-			return current;
-		}
-		current = current->next;
-	}
-
-	return NULL;
 }
 
 unsigned int hashGenerator(char *key, int size)
@@ -170,33 +242,54 @@ unsigned int hashGenerator(char *key, int size)
 	return hashValue;
 }
 
+/**
+ * Increments the count for an existing key or inserts a new item in the hash table.
+ * This function is thread-safe by using mutex locking and unlocking.
+ *
+ * @param table The hash table to modify
+ * @param key The key to search for or insert
+ * @param value The initial value for new items (existing items are incremented)
+ */
 void incrementOrInsertHashItem(HashTable *table, char *key, int value)
 {
+	// Lock mutex to protect the shared hash table
+	// Prevents race conditions when multiple threads update the table
 	pthread_mutex_lock(&tableMutex);
 
+	// Calculates item index for this key
 	unsigned int index = hashGenerator(key, table->size);
+
+	// Search for the item in the hash table
 	HashItem *current = table->items[index];
 
+	// Traverse the linked list at this item to find matching key
+	// This handles hash collisions by using chaining method
 	while (current != NULL)
 	{
-		// checks if the key already exists
-		// if it does, increases the value in 1
+		// check if the key already exists in the hash table
 		if (strcmp(current->key, key) == 0)
 		{
+			// Key found, increment his value by 1
 			current->value += 1;
+
+			// Unlock the mutex before returning
 			pthread_mutex_unlock(&tableMutex);
 			return;
 		}
+		// Moves to the next item if they share the item index
 		current = current->next;
 	}
 
-	// Key doesn't exist so create a new item
+	// Key doesn't exist so create a new item with the provided key and value
 	HashItem *newItem = createHashItem(key, value);
+	// Insert the new item at the begining of the ll (chaining)
 	newItem->next = table->items[index];
-
 	table->items[index] = newItem;
+
+	// Increments the total items on the hash table
 	table->count++;
 
+	// Unlock the mutex
 	pthread_mutex_unlock(&tableMutex);
 }
 
@@ -264,31 +357,51 @@ void printSortedHashTable(HashTable *table)
 	free(sortedItems);
 }
 
-void freeHashItem(HashItem *item)
-{
-	free(item->key);
-	free(item);
-}
-
+/**
+ * Frees the memory allocated for the hash table and its items
+ *
+ * @param table The hash table to free
+ */
 void freeHashTable(HashTable *table)
 {
+	if (table == NULL)
+	{
+		return;
+	}
+
+	// Free each item in the hash table
 	for (size_t i = 0; i < table->size; i++)
 	{
 		HashItem *item = table->items[i];
 
+		// Traverse the linked list and free each item
+		// This handles hash collisions by using chaining method
+		// This is the same method used in incrementOrInsertHashItem
 		while (item != NULL)
 		{
+			// Save reference to current item before moving to next
 			HashItem *temp = item;
 			item = item->next;
-			freeHashItem(temp);
+
+			// Free the item key and the item itself
+			free(temp->key);
+			free(temp);
 		}
 	}
-
+	// Free the array of item pointers and the hash table itself
 	free(table->items);
 	free(table);
 }
 
-char **readFileContent(const char *fileName, int startLine, int endLine)
+/**
+ * Extract player names from a specific range of lines from a file
+ *
+ * @param fileName Path to the file to be read
+ * @param startLine Index of the first line to read
+ * @param endLine Index of the last line to read
+ * @return Array of strings containing the player names, or NULL if an error
+ */
+char **extractMVPNamesFromFileRange(const char *fileName, int startLine, int endLine)
 {
 	FILE *file = fopen(fileName, "r");
 	if (file == NULL)
@@ -301,12 +414,15 @@ char **readFileContent(const char *fileName, int startLine, int endLine)
 	size_t lineCount = endLine - startLine;
 
 	char **lines = malloc(lineCount * sizeof(char *));
+
+	// Skip lines before the start position
 	int currentLine = 0;
 	while (currentLine < startLine && fgets(buffer, sizeof(buffer), file))
 	{
 		currentLine++;
 	}
 
+	// Read the specified range of lines and extract player names
 	size_t i = 0;
 	while (i < lineCount && fgets(buffer, sizeof(buffer), file))
 	{
@@ -315,7 +431,7 @@ char **readFileContent(const char *fileName, int startLine, int endLine)
 		i++;
 	}
 
-	// Removes \r and \n
+	// Removes \r and \n at the end of the name
 	for (size_t j = 0; j < lineCount; j++)
 	{
 		if (lines[j])
@@ -329,6 +445,12 @@ char **readFileContent(const char *fileName, int startLine, int endLine)
 	return lines;
 }
 
+/**
+ * Counts the total lines in a file
+ *
+ * @param fileName Path to the file to be read
+ * @return number of lines in the file, or -1 if an error ocurred
+ */
 int getLineCount(const char *fileName)
 {
 	FILE *file = fopen(fileName, "r");
@@ -338,15 +460,20 @@ int getLineCount(const char *fileName)
 		return -1;
 	}
 
+	// Char array where the line will be stored
 	char buffer[1024];
 	int lineCount = 0;
 
+	// Reads every char until it finds \n and count them
+	// Runs till it finds EOF
 	while (fgets(buffer, sizeof(buffer), file))
 	{
 		lineCount++;
 	}
 
+	// Resets the file
 	rewind(file);
+
 	fclose(file);
 
 	return lineCount;
@@ -354,25 +481,54 @@ int getLineCount(const char *fileName)
 
 void *countPlayerOccurrences(void *arg)
 {
-	ThreadArgs *p = (ThreadArgs *)arg;
+	// Typecast the void pointer arg as a pointer to ThreadArgs
+	// Neccessary because pthread_create only accept functions with *void params
+	// But we need our own specific structure (ThreadArgs)
+	ThreadArgs *threadArgs = (ThreadArgs *)arg;
 
-	char **fileContent = readFileContent(p->fileName, p->start, p->end);
-	for (size_t j = 0; j < p->end - p->start; j++)
+	// Get assigned line range
+	size_t lineCount = threadArgs->end - threadArgs->start;
+
+	// Get assigned portion of the file
+	char **fileContent = extractMVPNamesFromFileRange(threadArgs->fileName, threadArgs->start, threadArgs->end);
+	if (!fileContent)
 	{
-		incrementOrInsertHashItem(p->table, fileContent[j], 1);
+		fprintf(stderr, "Thread %d: Failed to read file content\n", threadArgs->tid);
+		pthread_exit(NULL);
+	}
 
+	// Increment or Insert each player name in the assigned range
+	for (size_t j = 0; j < lineCount; j++)
+	{
+		// Insert MVP on the HashTable or Update his value if it exists
+		incrementOrInsertHashItem(threadArgs->table, fileContent[j], 1);
+
+		// Free the line
 		free(fileContent[j]);
 	}
 
+	// Free the array of lines corresponding to this range
 	free(fileContent);
 
+	// Terminates thread and return a void pointer as required by pthread API
 	pthread_exit(NULL);
 }
 
-// qsort needs the void pointer type
+/**
+ * Compares two hash items for sorting
+ *
+ * @param a Pointer to the first item
+ * @param b Pointer to the second item
+ * @return Negative if b's value < a's value, positive if b's value > a's value
+ *         (Note: returns b-a, not a-b, to sort in descending order)
+ */
 int compareHashItems(const void *a, const void *b)
 {
+	// Cast the generic void pointers to SortableItem pointers
+	// This is necessary because qsort() uses void pointers for type-agnostic sorting
 	SortableItem *itemA = (SortableItem *)a;
 	SortableItem *itemB = (SortableItem *)b;
+
+	// Return the difference between values in descending order (b - a)
 	return itemB->value - itemA->value;
 }
