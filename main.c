@@ -1,9 +1,14 @@
 /**
+ * LAB 2 Paralelizacion con hebras: pthread y mutex en Premios MVP - UEFA Champions League 2023/24
+ * Author: Enrique
+ * USACH - Sistemas Operativos - 2025
+ *
  * This program reads a file containing player names and their MVP awards,
  * counts the occurrences of each player, and sorts them in descending order.
  * It uses multiple threads to speed up the counting process.
  *
  * Usage: ./program_name file.txt num_threads
+ *
  */
 
 #include <stdio.h>
@@ -46,7 +51,7 @@ typedef struct ThreadArgs
 // Function prototypes
 int countVisibleCharacters(const char *str);
 int ceilDivision(int numerator, int divisor);
-int getLineCount(const char *fileName);
+int getLineCountFromFile(const char *fileName);
 unsigned int hashGenerator(char *key, int size);
 HashTable *createHashTable(int size);
 HashItem *createHashItem(char *key, int value);
@@ -67,11 +72,10 @@ int main(int argc, char *argv[])
 	}
 
 	char *fileName = argv[1];
-	size_t N = atoi(argv[2]);
-	// const char *fileName = "mvp_champions_23_24.txt";
-	// int N = 5; // 3
-	size_t lineCount = getLineCount(fileName);
-	int chunkSize = ceilDivision(lineCount, N);
+	size_t numberOfThreads = atoi(argv[2]);
+
+	size_t lineCount = getLineCountFromFile(fileName);
+	int chunkSize = ceilDivision(lineCount, numberOfThreads);
 
 	HashTable *table = createHashTable(lineCount);
 	if (table == NULL)
@@ -84,7 +88,7 @@ int main(int argc, char *argv[])
 	pthread_mutex_init(&tableMutex, NULL);
 
 	// Allocate memory for the threads by the number provided by the user
-	pthread_t *threads = malloc(N * sizeof(pthread_t));
+	pthread_t *threads = malloc(numberOfThreads * sizeof(pthread_t));
 	if (threads == NULL)
 	{
 		fprintf(stderr, "Error allocating memory for threads\n");
@@ -93,7 +97,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Allocate memory for the thread arguments
-	ThreadArgs *arrThreads = malloc(N * sizeof(ThreadArgs));
+	ThreadArgs *arrThreads = malloc(numberOfThreads * sizeof(ThreadArgs));
 	if (arrThreads == NULL)
 	{
 		fprintf(stderr, "Error allocating memory for thread arguments\n");
@@ -103,7 +107,7 @@ int main(int argc, char *argv[])
 	}
 
 	int start = 0;
-	for (size_t i = 0; i < N; i++)
+	for (size_t i = 0; i < numberOfThreads; i++)
 	{
 		size_t end = start + chunkSize;
 		if (end > lineCount)
@@ -116,18 +120,19 @@ int main(int argc, char *argv[])
 		arrThreads[i].start = start;
 		arrThreads[i].end = end;
 		arrThreads[i].table = table;
+
 		start = end;
 	}
 
 	// Create threads to count player occurrences in the file
 	// Each thread will process a portion of the file
-	for (size_t i = 0; i < N; i++)
+	for (size_t i = 0; i < numberOfThreads; i++)
 	{
 		pthread_create(&(threads[i]), NULL, countPlayerOccurrences, (void *)&(arrThreads[i]));
 	}
 
 	// Wait for all threads to finish
-	for (size_t i = 0; i < N; i++)
+	for (size_t i = 0; i < numberOfThreads; i++)
 	{
 		pthread_join(threads[i], NULL);
 	}
@@ -293,14 +298,22 @@ void incrementOrInsertHashItem(HashTable *table, char *key, int value)
 	pthread_mutex_unlock(&tableMutex);
 }
 
-// TODO explain
+/**
+ * Counts the number of visible characters in a UTF-8 encoded string
+ * This function counts characters, not bytes, so it handles multi-byte UTF-8 characters correctly.
+ *
+ * @param str The string to count visible characters in
+ * @return The number of visible characters in the string
+ */
 int countVisibleCharacters(const char *str)
 {
 	int count = 0;
 	int i = 0;
 
+	// Iterate through the string and count visible characters
 	while (str[i] != '\0')
 	{
+		// Check if the current byte is the start of a multi-byte character
 		if ((str[i] & 0xC0) != 0x80)
 		{
 			count++;
@@ -451,7 +464,7 @@ char **extractMVPNamesFromFileRange(const char *fileName, int startLine, int end
  * @param fileName Path to the file to be read
  * @return number of lines in the file, or -1 if an error ocurred
  */
-int getLineCount(const char *fileName)
+int getLineCountFromFile(const char *fileName)
 {
 	FILE *file = fopen(fileName, "r");
 	if (file == NULL)
@@ -479,10 +492,17 @@ int getLineCount(const char *fileName)
 	return lineCount;
 }
 
+/**
+ * Thread function to count player occurrences in a specific range of lines
+ * This function is executed by each thread created in the main function.
+ *
+ * @param arg Pointer to the thread arguments (ThreadArgs structure)
+ * @return NULL
+ */
 void *countPlayerOccurrences(void *arg)
 {
 	// Typecast the void pointer arg as a pointer to ThreadArgs
-	// Neccessary because pthread_create only accept functions with *void params
+	// Necessary because pthread_create only accept functions with *void params
 	// But we need our own specific structure (ThreadArgs)
 	ThreadArgs *threadArgs = (ThreadArgs *)arg;
 
