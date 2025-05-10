@@ -1,13 +1,15 @@
 /**
  * LAB 2 Paralelizacion con hebras: pthread y mutex en Premios MVP - UEFA Champions League 2023/24
- * Author: Enrique
+ * Author: Enrique Rodriguez-Lapuente
  * USACH - Sistemas Operativos - 2025
  *
- * This program reads a file containing player names and their MVP awards,
- * counts the occurrences of each player, and sorts them in descending order.
- * It uses multiple threads to speed up the counting process.
+ * This program reads a file containing the matches of the champions league and
+ * their MVP, it counts the occurrences of each MVP, and sorts them in
+ * descending order.
+ * It uses multiple threads to distribute up the counting process.
  *
- * Usage: ./program_name file.txt num_threads
+ * Usage: ./program_name <file.txt> <num_threads>
+ * Example: ./program_name partidos.txt 4
  *
  */
 
@@ -17,35 +19,50 @@
 #include <unistd.h>
 #include <pthread.h>
 
+// Mutex to protect the shared hash table
+// This prevents race conditions when multiple threads try to update player counts simultaneously
 pthread_mutex_t tableMutex;
 
+/**
+ * Represents a single item in the hash table with key-value pair and chaining support.
+ */
 typedef struct HashItem
 {
-	char *key;
-	int value;
-	struct HashItem *next;
+	char *key;			   // String key (player name)
+	int value;			   // Count value (number of MVP awards)
+	struct HashItem *next; // Pointer to next item (for collision chaining)
 } HashItem;
 
+/**
+ * Represents a hash table with an array of pointers to HashItem structures.
+ * The size is the capacity of the table, and count is the number of items in it.
+ */
 typedef struct HashTable
 {
-	HashItem **items;
-	size_t size;
-	size_t count;
+	HashItem **items; // Array of pointers to hash items
+	size_t size;	  // Capacity of the hash table
+	size_t count;	  // Number of items currently stored
 } HashTable;
 
+/**
+ * Lightweight structure for sorting items extracted from the hash table.
+ */
 typedef struct SortableItem
 {
-	char *key;
-	int value;
+	char *key; // Reference to original key in hash table
+	int value; // Count value for sorting
 } SortableItem;
 
+/**
+ * Arguments passed to each worker thread to define its work range.
+ */
 typedef struct ThreadArgs
 {
-	int tid;
-	char *fileName;
-	size_t start;
-	size_t end;
-	HashTable *table;
+	int tid;		  // Thread ID for identification
+	char *fileName;	  // Input file to process
+	size_t start;	  // Starting line in the file
+	size_t end;		  // Ending line in the file
+	HashTable *table; // Shared hash table reference
 } ThreadArgs;
 
 // Function prototypes
@@ -67,16 +84,22 @@ int main(int argc, char *argv[])
 	// Check if the user provided the correct number of arguments
 	if (argc != 3)
 	{
+		// Print message with instructions if the number of arguments is incorrect
 		fprintf(stderr, "Uso: %s archivo.txt num_hebras\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
+	// Extract command line arguments filename and number of threads
 	char *fileName = argv[1];
 	size_t numberOfThreads = atoi(argv[2]);
 
+	// Count total lines in the input file to determine work distribution
 	size_t lineCount = getLineCountFromFile(fileName);
+
+	// Calculate how many lines each thread should process (rounded up)
 	int chunkSize = ceilDivision(lineCount, numberOfThreads);
 
+	// Create a hash table with a size equal to the number of lines in the file
 	HashTable *table = createHashTable(lineCount);
 	if (table == NULL)
 	{
@@ -85,60 +108,75 @@ int main(int argc, char *argv[])
 	}
 
 	// Initialize the mutex that will be used to protect the shared hash table
+	// This mutex will be used to ensure that only one thread can access the hash table at a time
 	pthread_mutex_init(&tableMutex, NULL);
 
-	// Allocate memory for the threads by the number provided by the user
+	// Dynamically allocate memory for an array of threads by the number provided by the user
 	pthread_t *threads = malloc(numberOfThreads * sizeof(pthread_t));
 	if (threads == NULL)
 	{
+		// if memory allocation fails, print an error message
 		fprintf(stderr, "Error allocating memory for threads\n");
+		// Free the hash table before exiting
 		freeHashTable(table);
 		return EXIT_FAILURE;
 	}
 
-	// Allocate memory for the thread arguments
+	// Allocate memory for the thread parameters
 	ThreadArgs *arrThreads = malloc(numberOfThreads * sizeof(ThreadArgs));
 	if (arrThreads == NULL)
 	{
+		// if memory allocation fails, print an error message
 		fprintf(stderr, "Error allocating memory for thread arguments\n");
+		// Free the hash table and threads before exiting
 		free(threads);
 		freeHashTable(table);
 		return EXIT_FAILURE;
 	}
 
+	// Distribute work among threads by assigning line ranges to each thread
 	int start = 0;
 	for (size_t i = 0; i < numberOfThreads; i++)
 	{
+		// Calculate end position for current thread's work chunk
 		size_t end = start + chunkSize;
+		// If the end index exceeds the total number of lines, set it to lineCount
+		// This ensures that the last thread processes any remaining lines
+		// This is important to avoid out-of-bounds access in the file reading function
 		if (end > lineCount)
 		{
 			end = lineCount;
 		}
 
+		// Configure thread parameters: thread ID, file to process, line range, and shared table
 		arrThreads[i].tid = i;
 		arrThreads[i].fileName = fileName;
 		arrThreads[i].start = start;
 		arrThreads[i].end = end;
 		arrThreads[i].table = table;
 
+		// Update start position for next thread
 		start = end;
 	}
 
 	// Create threads to count player occurrences in the file
-	// Each thread will process a portion of the file
+	// Each thread will process a range of lines from the file
 	for (size_t i = 0; i < numberOfThreads; i++)
 	{
 		pthread_create(&(threads[i]), NULL, countPlayerOccurrences, (void *)&(arrThreads[i]));
 	}
 
-	// Wait for all threads to finish
+	// Wait for all threads to complete their processing before continuing
+	// This ensures all MVP data has been processed before printing results
 	for (size_t i = 0; i < numberOfThreads; i++)
 	{
 		pthread_join(threads[i], NULL);
 	}
 
+	// Write the results to file report mvp.txt in sorted order
 	printSortedHashTable(table);
 
+	// Clean up resources
 	free(threads);
 	free(arrThreads);
 	freeHashTable(table);
@@ -201,7 +239,14 @@ HashTable *createHashTable(int size)
 }
 
 /**
- * Creates and initializes a hash item
+ * Creates and initializes a hash item for insertion into the hash table.
+ * Each item is designed to be part of a linked list to handle hash collisions
+ * through chaining.
+ *
+ * Collision handling is used because:
+ * 1. Different player names may hash to the same index (hash collision)
+ * 2. Our hash function has limited output range (table size) but unlimited input possibilities
+ * 3. Without collision handling, newer players would overwrite previous ones with the same hash
  *
  * @param key The key of the hash item
  * @param value The value of the hash item
@@ -230,17 +275,27 @@ HashItem *createHashItem(char *key, int value)
 	// Copy the key string into the allocated memory
 	strcpy(item->key, key);
 	// Initialize the value and next pointer
+	// The next pointer enables chaining for collision handling
 	item->value = value;
 	item->next = NULL;
 
 	return item;
 }
 
+/**
+ * Computes a hash value for a given string key using a polynomial rolling hash.
+ * Multiplies the current hash by 31 and adds each character, applying modulo to stay within bounds.
+ *
+ * @param key  The input string key (player name).
+ * @param size The size of the hash table.
+ * @return     A hash value in the range [0, size - 1].
+ */
 unsigned int hashGenerator(char *key, int size)
 {
 	unsigned int hashValue = 0;
 	for (size_t i = 0; key[i] != '\0'; i++)
 	{
+		// Multiply by 31, add current char, and keep within bounds with modulo
 		hashValue = (hashValue * 31 + key[i]) % size;
 	}
 
@@ -261,6 +316,9 @@ void incrementOrInsertHashItem(HashTable *table, char *key, int value)
 	// Prevents race conditions when multiple threads update the table
 	pthread_mutex_lock(&tableMutex);
 
+	// debug to check which thread is locking the mutex
+	// printf("Thread %lu lock thread for key: %s\n", (unsigned long)pthread_self(), key);
+
 	// Calculates item index for this key
 	unsigned int index = hashGenerator(key, table->size);
 
@@ -277,7 +335,7 @@ void incrementOrInsertHashItem(HashTable *table, char *key, int value)
 			// Key found, increment his value by 1
 			current->value += 1;
 
-			// Unlock the mutex before returning
+			// Unlock the mutex before returning to allow other threads to access the table
 			pthread_mutex_unlock(&tableMutex);
 			return;
 		}
@@ -294,7 +352,7 @@ void incrementOrInsertHashItem(HashTable *table, char *key, int value)
 	// Increments the total items on the hash table
 	table->count++;
 
-	// Unlock the mutex
+	// Unlock the mutex before returning to allow other threads to access the table
 	pthread_mutex_unlock(&tableMutex);
 }
 
@@ -324,49 +382,83 @@ int countVisibleCharacters(const char *str)
 	return count;
 }
 
+/**
+ * Sorts the hash table items by value in descending order and writes the results to a file.
+ * This function is called after all threads have completed adding players to the hash table.
+ *
+ * @param table Pointer to the hash table containing all player names and their MVP counts
+ */
 void printSortedHashTable(HashTable *table)
 {
 
+	// Allocate memory for an array to hold items for sorting
+	// An array is needed because the hash table uses linked lists to handle collisions
+	// And a linked list is not suitable for sorting
 	SortableItem *sortedItems = malloc(table->count * sizeof(SortableItem));
 	int itemIndex = 0;
 
+	// Traverse the entire hash table and copy all items to the sortable array
 	for (size_t i = 0; i < table->size; i++)
 	{
+		// Get the first item at this hash index
 		HashItem *current = table->items[i];
+
+		// Traverse the linked list at this hash position (handling hash collisions)
+		// if current is NULL, it means there are no items at this index
 		while (current != NULL)
 		{
+			// Shallow copies the key and value to the sortable array (no wasted memory)
+			// This is safe because the key is not modified in the hash table
+			// The value is only used for sorting
+			// And they will be freed later
 			sortedItems[itemIndex].key = current->key;
 			sortedItems[itemIndex].value = current->value;
 			itemIndex++;
+
+			// Move to the next item in the linked list
 			current = current->next;
 		}
 	}
 
+	// Sort the array in descending order based on the MVP count using the qsort function
+	// compareHashItems is the comparison function that enables sorting by value in descending order
 	qsort(sortedItems, table->count, sizeof(SortableItem), compareHashItems);
 
+	// Open a reporte mvp.txt for writing the sorted results
 	FILE *fptr;
 	fptr = fopen("reporte mvp.txt", "w");
+	// Header for the report
 	fprintf(fptr, "Jugador MVP%*s|\tPremios\n", 13, "");
 	fprintf(fptr, "-----------------------------------\n");
 
+	// Iterate through each sorted item and write it to the file
 	for (size_t i = 0; i < table->count; i++)
 	{
+		// Create a buffer to store the key (player name) and ensure it is null-terminated
 		char buffer[100] = {0};
+		// Copy the key (player name) to the buffer
 		strcpy(buffer, sortedItems[i].key);
 
-		// count visible chars not bytes
+		// Count the visible characters in the player name
+		// This is important for UTF-8 strings with non-ASCII characters
+		// to ensure proper alignment in the output
 		int visibleCharacters = countVisibleCharacters(buffer);
 
+		// Pad the player name with spaces to ensure all names have the same displayed width
+		// This creates a uniform column width for better readability
 		for (size_t j = visibleCharacters; j < 24; j++)
 		{
 			strcat(buffer, " ");
 		}
 
+		// Write the formatted player name and MVP count to the file
 		fprintf(fptr, "%s|\t%d\n", buffer, sortedItems[i].value);
 	}
 
 	fclose(fptr);
 
+	// Free the memory allocated for the sortable array
+	// I don't free the individual keys because they are still owned by the hash table
 	free(sortedItems);
 }
 
@@ -509,7 +601,7 @@ void *countPlayerOccurrences(void *arg)
 	// Get assigned line range
 	size_t lineCount = threadArgs->end - threadArgs->start;
 
-	// Get assigned portion of the file
+	// Extract player names from the specified range of lines in the file
 	char **fileContent = extractMVPNamesFromFileRange(threadArgs->fileName, threadArgs->start, threadArgs->end);
 	if (!fileContent)
 	{
@@ -517,7 +609,8 @@ void *countPlayerOccurrences(void *arg)
 		pthread_exit(NULL);
 	}
 
-	// Increment or Insert each player name in the assigned range
+	// Increment (if exists) or Insert in the hash table each mvp from the assigned range
+	// The incrementOrInsertHashItem function handles mutex locking internally
 	for (size_t j = 0; j < lineCount; j++)
 	{
 		// Insert MVP on the HashTable or Update his value if it exists
@@ -535,12 +628,11 @@ void *countPlayerOccurrences(void *arg)
 }
 
 /**
- * Compares two hash items for sorting
+ * Comparison function for qsort to arrange hash items in descending order by value.
  *
- * @param a Pointer to the first item
- * @param b Pointer to the second item
- * @return Negative if b's value < a's value, positive if b's value > a's value
- *         (Note: returns b-a, not a-b, to sort in descending order)
+ * @param a First item to compare (as void pointer)
+ * @param b Second item to compare (as void pointer)
+ * @return Negative if b < a, positive if b > a (for descending sort)
  */
 int compareHashItems(const void *a, const void *b)
 {
@@ -549,6 +641,6 @@ int compareHashItems(const void *a, const void *b)
 	SortableItem *itemA = (SortableItem *)a;
 	SortableItem *itemB = (SortableItem *)b;
 
-	// Return the difference between values in descending order (b - a)
+	// Subtract a from b to sort in descending order
 	return itemB->value - itemA->value;
 }
