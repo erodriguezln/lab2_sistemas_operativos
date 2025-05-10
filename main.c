@@ -92,6 +92,11 @@ int main(int argc, char *argv[])
 	// Extract command line arguments filename and number of threads
 	char *fileName = argv[1];
 	size_t numberOfThreads = atoi(argv[2]);
+	if (numberOfThreads <= 0)
+	{
+		fprintf(stderr, "Error: threads number must be greater than 0\n");
+		return EXIT_FAILURE;
+	}
 
 	// Count total lines in the input file to determine work distribution
 	size_t lineCount = getLineCountFromFile(fileName);
@@ -424,9 +429,16 @@ void printSortedHashTable(HashTable *table)
 	// compareHashItems is the comparison function that enables sorting by value in descending order
 	qsort(sortedItems, table->count, sizeof(SortableItem), compareHashItems);
 
-	// Open a reporte mvp.txt for writing the sorted results
+	// Open a reporte_mvp.txt for writing the sorted results
 	FILE *fptr;
-	fptr = fopen("reporte mvp.txt", "w");
+	fptr = fopen("reporte_mvp.txt", "w");
+	if (fptr == NULL)
+	{
+		perror("Error creating report file");
+		// Free the memory allocated for the sortable array
+		free(sortedItems);
+		return;
+	}
 	// Header for the report
 	fprintf(fptr, "Jugador MVP%*s|\tPremios\n", 13, "");
 	fprintf(fptr, "-----------------------------------\n");
@@ -519,6 +531,12 @@ char **extractMVPNamesFromFileRange(const char *fileName, int startLine, int end
 	size_t lineCount = endLine - startLine;
 
 	char **lines = malloc(lineCount * sizeof(char *));
+	if (lines == NULL)
+	{
+		perror("Error allocating memory for lines");
+		fclose(file);
+		return NULL;
+	}
 
 	// Skip lines before the start position
 	int currentLine = 0;
