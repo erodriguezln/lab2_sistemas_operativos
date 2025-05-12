@@ -1,0 +1,98 @@
+Jugador MVP             |	Premios
+-----------------------------------
+Jude Bellingham         |	3
+Antoine Griezmann       |	3
+Galeno                  |	3
+Mats Hummels            |	3
+Vinícius Júnior         |	3
+Phil Foden              |	3
+Rasmus Falk             |	3
+Rafael Leão             |	3
+Lautaro Martínez        |	2
+Brais Méndez            |	2
+Ciro Immobile           |	2
+Julian Brandt           |	2
+Joshua Kimmich          |	2
+João Mário              |	2
+Kylian                  |	2
+Kingsley Coman          |	2
+Martin Zubimendi        |	2
+Warren Zaïre-Emery      |	2
+Gabriel Jesus           |	2
+Martin Ødegaard         |	2
+Harry Kane              |	2
+Kieran Trippier         |	1
+Robert Lewandowski      |	1
+Ismael Saibari          |	1
+Johan Bakayoko          |	1
+Rodri                   |	1
+Hakim Ziyech            |	1
+Ousmane Dembélé         |	1
+Khvicha Kvaratskhelia   |	1
+Lewin Blum              |	1
+Evanilson               |	1
+Álvaro Morata           |	1
+Santiago Gimenez        |	1
+Takefusa Kubo           |	1
+Ricardo Horta           |	1
+Roko Šimić              |	1
+Danylo Sikan            |	1
+Tetê                    |	1
+Manuel Akanji           |	1
+Lucas Ocampos           |	1
+Arthur Vermeeren        |	1
+Kevin Kampl             |	1
+Noa Lang                |	1
+Fermín López            |	1
+Rasmus Højlund          |	1
+Erling Haaland          |	1
+Oscar Bobb              |	1
+Jadon Sancho            |	1
+Matteo Guendouzi        |	1
+Marko Arnautović        |	1
+Dani Carvajal           |	1
+Loïs Openda             |	1
+Leroy Sané              |	1
+Samuel Lino             |	1
+Hakan Çalhanoğlu        |	1
+Matteo Politano         |	1
+İlkay Gündoğan          |	1
+Miguel Almirón          |	1
+Joey Veerman            |	1
+Vitinha                 |	1
+Przemysław Frankowski   |	1
+Bukayo Saka             |	1
+Kevin Danso             |	1
+Donyell Malen           |	1
+Federico Valverde       |	1
+Ángel Di María          |	1
+Matthew O'Riley         |	1
+Willi Orbán             |	1
+Rico Lewis              |	1
+David Raya              |	1
+João Cancelo            |	1
+Natan                   |	1
+João Félix              |	1
+Pau Cubarsí             |	1
+Georgiy Sudakov         |	1
+Rodrygo                 |	1
+Xavi Simons             |	1
+Calvin Stengs           |	1
+Raphinha                |	1
+Kevin De Bruyne         |	1
+Matías Vecino           |	1
+David Raum              |	1
+Jan Oblak               |	1
+Osman Bukari            |	1
+Bruma                   |	1
+Elye Wahi               |	1
+Rodrigo Riquelme        |	1
+Mikel Oyarzabal         |	1
+Oleksandr Zubkov        |	1
+Luuk de Jong            |	1
+Tijjani Reijnders       |	1
+Brahim Díaz             |	1
+Joselu                  |	1
+Christian Eriksen       |	1
+Victor Osimhen          |	1
+Liam Scales             |	1

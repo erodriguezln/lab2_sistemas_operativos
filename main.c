@@ -16,11 +16,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+// #include <unistd.h>
 #include <pthread.h>
 
-// Mutex to protect the shared hash table
-// This prevents race conditions when multiple threads try to update player counts simultaneously
+// Mutex to protect the shared hash table, to avoid race conditions
+// when multiple threads try to update the player counts simultaneously
 pthread_mutex_t tableMutex;
 
 /**
@@ -56,14 +56,14 @@ typedef struct SortableItem
 /**
  * Arguments passed to each worker thread to define its work range.
  */
-typedef struct ThreadArgs
+typedef struct ThreadData
 {
 	int tid;		  // Thread ID for identification
 	char *fileName;	  // Input file to process
-	size_t start;	  // Starting line in the file
-	size_t end;		  // Ending line in the file
+	size_t startLine; // Starting line in the file
+	size_t endLine;	  // Ending line in the file
 	HashTable *table; // Shared hash table reference
-} ThreadArgs;
+} ThreadData;
 
 // Function prototypes
 int countVisibleCharacters(const char *str);
@@ -82,16 +82,21 @@ void *countPlayerOccurrences(void *arg);
 int main(int argc, char *argv[])
 {
 	// Check if the user provided the correct number of arguments
-	if (argc != 3)
-	{
-		// Print message with instructions if the number of arguments is incorrect
-		fprintf(stderr, "Uso: %s archivo.txt num_hebras\n", argv[0]);
-		return EXIT_FAILURE;
-	}
+	// TODO Dont forget to uncomment this
+	// if (argc != 3)
+	// {
+	// 	// Print message with instructions if the number of arguments is incorrect
+	// 	fprintf(stderr, "Uso: %s archivo.txt num_hebras\n", argv[0]);
+	// 	return EXIT_FAILURE;
+	// }
 
 	// Extract command line arguments filename and number of threads
-	char *fileName = argv[1];
-	size_t numberOfThreads = atoi(argv[2]);
+	// TODO Dont forget to uncomment this
+	// char *fileName = argv[1];
+	// size_t numberOfThreads = atoi(argv[2]);
+	// TODO Debug, dont forget to remove this
+	char *fileName = "mvp_champions_23_24.txt";
+	size_t numberOfThreads = 3;
 	if (numberOfThreads <= 0)
 	{
 		fprintf(stderr, "Error: threads number must be greater than 0\n");
@@ -102,7 +107,8 @@ int main(int argc, char *argv[])
 	size_t lineCount = getLineCountFromFile(fileName);
 
 	// Calculate how many lines each thread should process (rounded up)
-	int chunkSize = ceilDivision(lineCount, numberOfThreads);
+	// ex: 125 lines and 3 threads = 125/3 => 41.66 => 42
+	int linesPerThread = ceilDivision(lineCount, numberOfThreads);
 
 	// Create a hash table with a size equal to the number of lines in the file
 	HashTable *table = createHashTable(lineCount);
@@ -112,11 +118,12 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	// Initialize the mutex that will be used to protect the shared hash table
-	// This mutex will be used to ensure that only one thread can access the hash table at a time
+	// Initialize mutex that will be used to ensure that only one thread can
+	// access the hash table at a time protecting it
 	pthread_mutex_init(&tableMutex, NULL);
 
-	// Dynamically allocate memory for an array of threads by the number provided by the user
+	// TODO I think this comment is better based on the linux manual
+	// Dynamically allocate memory for an array that will hold pthread_t ids
 	pthread_t *threads = malloc(numberOfThreads * sizeof(pthread_t));
 	if (threads == NULL)
 	{
@@ -127,9 +134,10 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
+	// TODO Improve this comment to be more clear and explicit
 	// Allocate memory for the thread parameters
-	ThreadArgs *arrThreads = malloc(numberOfThreads * sizeof(ThreadArgs));
-	if (arrThreads == NULL)
+	ThreadData *threadData = malloc(numberOfThreads * sizeof(ThreadData));
+	if (threadData == NULL)
 	{
 		// if memory allocation fails, print an error message
 		fprintf(stderr, "Error allocating memory for thread arguments\n");
@@ -140,35 +148,35 @@ int main(int argc, char *argv[])
 	}
 
 	// Distribute work among threads by assigning line ranges to each thread
-	int start = 0;
+	int startLine = 0;
 	for (size_t i = 0; i < numberOfThreads; i++)
 	{
 		// Calculate end position for current thread's work chunk
-		size_t end = start + chunkSize;
+		size_t endLine = startLine + linesPerThread;
 		// If the end index exceeds the total number of lines, set it to lineCount
-		// This ensures that the last thread processes any remaining lines
-		// This is important to avoid out-of-bounds access in the file reading function
-		if (end > lineCount)
+		// Ex: 125 / 3 = 41.66 => 42 but 42 * 3 = 126 > 125 so we set it to 125
+		// to avoid out of bounds access
+		if (endLine > lineCount)
 		{
-			end = lineCount;
+			endLine = lineCount;
 		}
 
 		// Configure thread parameters: thread ID, file to process, line range, and shared table
-		arrThreads[i].tid = i;
-		arrThreads[i].fileName = fileName;
-		arrThreads[i].start = start;
-		arrThreads[i].end = end;
-		arrThreads[i].table = table;
+		threadData[i].tid = i;
+		threadData[i].fileName = fileName;
+		threadData[i].startLine = startLine;
+		threadData[i].endLine = endLine;
+		threadData[i].table = table;
 
 		// Update start position for next thread
-		start = end;
+		startLine = endLine;
 	}
 
 	// Create threads to count player occurrences in the file
 	// Each thread will process a range of lines from the file
 	for (size_t i = 0; i < numberOfThreads; i++)
 	{
-		pthread_create(&(threads[i]), NULL, countPlayerOccurrences, (void *)&(arrThreads[i]));
+		pthread_create(&(threads[i]), NULL, countPlayerOccurrences, (void *)&(threadData[i]));
 	}
 
 	// Wait for all threads to complete their processing before continuing
@@ -183,7 +191,7 @@ int main(int argc, char *argv[])
 
 	// Clean up resources
 	free(threads);
-	free(arrThreads);
+	free(threadData);
 	freeHashTable(table);
 
 	// Destroy the mutex after all threads have finished
@@ -363,7 +371,9 @@ void incrementOrInsertHashItem(HashTable *table, char *key, int value)
 
 /**
  * Counts the number of visible characters in a UTF-8 encoded string
- * This function counts characters, not bytes, so it handles multi-byte UTF-8 characters correctly.
+ * This function counts characters, not bytes, it handles multi-byte characters
+ * correctly to avoid overflowing the columns in the report. (happens with
+ * characters like ñ, á, é, ü, etc.)
  *
  * @param str The string to count visible characters in
  * @return The number of visible characters in the string
@@ -452,8 +462,8 @@ void printSortedHashTable(HashTable *table)
 		strcpy(buffer, sortedItems[i].key);
 
 		// Count the visible characters in the player name
-		// This is important for UTF-8 strings with non-ASCII characters
-		// to ensure proper alignment in the output
+		// This is useful for UTF-8 strings with non-ASCII characters
+		// to avoid moving the columns in the report.
 		int visibleCharacters = countVisibleCharacters(buffer);
 
 		// Pad the player name with spaces to ensure all names have the same displayed width
@@ -470,7 +480,6 @@ void printSortedHashTable(HashTable *table)
 	fclose(fptr);
 
 	// Free the memory allocated for the sortable array
-	// I don't free the individual keys because they are still owned by the hash table
 	free(sortedItems);
 }
 
@@ -528,12 +537,13 @@ char **extractMVPNamesFromFileRange(const char *fileName, int startLine, int end
 	}
 
 	char buffer[1024];
-	size_t lineCount = endLine - startLine;
+	size_t rangeOfLines = endLine - startLine;
 
-	char **lines = malloc(lineCount * sizeof(char *));
-	if (lines == NULL)
+	// Allocate memory for an array of strings to store player names
+	char **playerNames = malloc(rangeOfLines * sizeof(char *));
+	if (playerNames == NULL)
 	{
-		perror("Error allocating memory for lines");
+		perror("Error allocating memory for array of player names");
 		fclose(file);
 		return NULL;
 	}
@@ -547,25 +557,27 @@ char **extractMVPNamesFromFileRange(const char *fileName, int startLine, int end
 
 	// Read the specified range of lines and extract player names
 	size_t i = 0;
-	while (i < lineCount && fgets(buffer, sizeof(buffer), file))
+	while (i < rangeOfLines && fgets(buffer, sizeof(buffer), file))
 	{
 		// Picks only the player name without the comma before his name
-		lines[i] = strdup(strrchr(buffer, ',') + 1);
+		playerNames[i] = strdup(strrchr(buffer, ',') + 1);
 		i++;
 	}
 
-	// Removes \r and \n at the end of the name
-	for (size_t j = 0; j < lineCount; j++)
+	// Navigate each line(player name) char by char and replace \r or \n with \0
+	for (size_t j = 0; j < rangeOfLines; j++)
 	{
-		if (lines[j])
+		if (playerNames[j])
 		{
-			lines[j][strcspn(lines[j], "\r\n")] = '\0';
+			// find \r or \n and replace it with \0
+			// ex: "Player Name\n" => "Player Name\0"
+			playerNames[j][strcspn(playerNames[j], "\r\n")] = '\0';
 		}
 	}
 
 	fclose(file);
 
-	return lines;
+	return playerNames;
 }
 
 /**
@@ -606,24 +618,24 @@ int getLineCountFromFile(const char *fileName)
  * Thread function to count player occurrences in a specific range of lines
  * This function is executed by each thread created in the main function.
  *
- * @param arg Pointer to the thread arguments (ThreadArgs structure)
+ * @param arg Pointer to the thread arguments (ThreadData structure)
  * @return NULL
  */
 void *countPlayerOccurrences(void *arg)
 {
-	// Typecast the void pointer arg as a pointer to ThreadArgs
+	// Typecast the void pointer arg as a pointer to ThreadData
 	// Necessary because pthread_create only accept functions with *void params
-	// But we need our own specific structure (ThreadArgs)
-	ThreadArgs *threadArgs = (ThreadArgs *)arg;
+	// But we need our own specific structure (ThreadData)
+	ThreadData *threadData = (ThreadData *)arg;
 
 	// Get assigned line range
-	size_t lineCount = threadArgs->end - threadArgs->start;
+	size_t lineCount = threadData->endLine - threadData->startLine;
 
 	// Extract player names from the specified range of lines in the file
-	char **fileContent = extractMVPNamesFromFileRange(threadArgs->fileName, threadArgs->start, threadArgs->end);
+	char **fileContent = extractMVPNamesFromFileRange(threadData->fileName, threadData->startLine, threadData->endLine);
 	if (!fileContent)
 	{
-		fprintf(stderr, "Thread %d: Failed to read file content\n", threadArgs->tid);
+		fprintf(stderr, "Thread %d: Failed to read file content\n", threadData->tid);
 		pthread_exit(NULL);
 	}
 
@@ -632,7 +644,7 @@ void *countPlayerOccurrences(void *arg)
 	for (size_t j = 0; j < lineCount; j++)
 	{
 		// Insert MVP on the HashTable or Update his value if it exists
-		incrementOrInsertHashItem(threadArgs->table, fileContent[j], 1);
+		incrementOrInsertHashItem(threadData->table, fileContent[j], 1);
 
 		// Free the line
 		free(fileContent[j]);
